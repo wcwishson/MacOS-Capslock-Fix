@@ -1,0 +1,21 @@
+.DS_Store
+.netrc
+
+# SwiftPM
+.build/
+.swiftpm/
+/Packages
+
+# Local build outputs
+DerivedData/
+XcodeDerived/
+dist/
+
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.pbxuser
+!default.pbxuser

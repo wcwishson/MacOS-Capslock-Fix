@@ -1,0 +1,44 @@
+name: CapsLockFix
+options:
+  minimumXcodeGenVersion: 2.38.0
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+schemes:
+  CapsLockFix:
+    build:
+      targets:
+        CapsLockFix: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+targets:
+  CapsLockFix:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Sources/CapsLockFix
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        LSMinimumSystemVersion: "13.0"
+        NSHighResolutionCapable: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.weimingchen.capslockfix
+        PRODUCT_NAME: CapsLockFix
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_DEBUG_DYLIB: NO
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_KEY_CFBundleIconName: AppIcon
+        INFOPLIST_KEY_LSMinimumSystemVersion: "13.0"
+        INFOPLIST_KEY_LSUIElement: NO
+        INFOPLIST_KEY_NSHighResolutionCapable: YES
