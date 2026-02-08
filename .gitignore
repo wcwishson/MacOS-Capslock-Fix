@@ -10,6 +10,8 @@
 DerivedData/
 XcodeDerived/
 dist/
+CapsLockFix.app/
+CapsLockFix-*.zip
 
 # Xcode user-specific files
 xcuserdata/
