@@ -1,20 +1,30 @@
 import AppKit
 import ApplicationServices
-import Carbon
 import IOKit
 import IOKit.hid
 import IOKit.hidsystem
 
 private final class CapsLockLightController {
+    private static let keyboardUsagePage = Int(kHIDPage_GenericDesktop)
+    private static let keyboardUsage = Int(kHIDUsage_GD_Keyboard)
+    private static let capsLockLEDUsagePage = UInt32(kHIDPage_LEDs)
+    private static let capsLockLEDUsage = UInt32(kHIDUsage_LED_CapsLock)
+
     private let eventHandle: NXEventHandle
     private let hasEventHandle: Bool
+    private var ledManager: IOHIDManager?
+    private var capsLockLEDElements: [IOHIDElement] = []
 
     init() {
         eventHandle = NXOpenEventStatus()
         hasEventHandle = eventHandle != NXEventHandle(MACH_PORT_NULL)
+        refreshLEDElements()
     }
 
     deinit {
+        if let ledManager {
+            IOHIDManagerClose(ledManager, IOOptionBits(kIOHIDOptionsTypeNone))
+        }
         if hasEventHandle {
             NXCloseEventStatus(eventHandle)
         }
@@ -33,10 +43,78 @@ private final class CapsLockLightController {
 
     @discardableResult
     func setState(_ enabled: Bool) -> Bool {
-        guard hasEventHandle else { return false }
+        if setLEDState(enabled) {
+            return true
+        }
 
+        guard hasEventHandle else { return false }
         let result = IOHIDSetModifierLockState(eventHandle, Int32(kIOHIDCapsLockState), enabled)
         return result == KERN_SUCCESS
+    }
+
+    private func refreshLEDElements() {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        let matching: [String: Int] = [
+            kIOHIDDeviceUsagePageKey: Self.keyboardUsagePage,
+            kIOHIDDeviceUsageKey: Self.keyboardUsage,
+        ]
+        IOHIDManagerSetDeviceMatching(manager, matching as CFDictionary)
+
+        guard IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone)) == kIOReturnSuccess else {
+            return
+        }
+
+        ledManager = manager
+        capsLockLEDElements = Self.capsLockLEDElements(from: manager)
+    }
+
+    private func setLEDState(_ enabled: Bool) -> Bool {
+        if capsLockLEDElements.isEmpty {
+            refreshLEDElements()
+        }
+
+        var didSetAnyLED = false
+        for element in capsLockLEDElements {
+            let device = IOHIDElementGetDevice(element)
+            let value = IOHIDValueCreateWithIntegerValue(
+                kCFAllocatorDefault,
+                element,
+                0,
+                enabled ? 1 : 0
+            )
+            let result = IOHIDDeviceSetValue(device, element, value)
+            if result == kIOReturnSuccess {
+                didSetAnyLED = true
+            }
+        }
+        return didSetAnyLED
+    }
+
+    private static func capsLockLEDElements(from manager: IOHIDManager) -> [IOHIDElement] {
+        guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> else {
+            return []
+        }
+
+        var elements: [IOHIDElement] = []
+        for device in devices {
+            guard
+                let deviceElements = IOHIDDeviceCopyMatchingElements(
+                    device,
+                    nil,
+                    IOOptionBits(kIOHIDOptionsTypeNone)
+                ) as? [IOHIDElement]
+            else {
+                continue
+            }
+
+            elements.append(contentsOf: deviceElements.filter { element in
+                let type = IOHIDElementGetType(element)
+                return IOHIDElementGetUsagePage(element) == capsLockLEDUsagePage
+                    && IOHIDElementGetUsage(element) == capsLockLEDUsage
+                    && (type == kIOHIDElementTypeOutput || type == kIOHIDElementTypeFeature)
+            })
+        }
+        return elements
     }
 }
 
@@ -172,158 +250,16 @@ final class CapsLockRemapper {
         return remapper.handle(eventType: type, event: event)
     }
 
-    private final class InputSourceController {
-        private let preferredASCIIInputSourceIDs = [
-            "com.apple.keylayout.ABC",
-            "com.apple.keylayout.US",
-        ]
-        private let keyboardLayoutSourceType = kTISTypeKeyboardLayout as String
-        private let chinesePinyinBundleIDs: Set<String> = [
-            "com.apple.inputmethod.SCIM",
-            "com.apple.inputmethod.TCIM",
-        ]
-
-        func enterCapsMode() -> String? {
-            guard
-                let currentSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
-                let currentSourceID = inputSourceID(for: currentSource)
-            else {
-                return nil
-            }
-
-            guard shouldSwitchToASCII(currentSource) else {
-                return nil
-            }
-
-            guard
-                let asciiSource = bestASCIISource(),
-                let asciiSourceID = inputSourceID(for: asciiSource),
-                asciiSourceID != currentSourceID
-            else {
-                return nil
-            }
-
-            _ = TISSelectInputSource(asciiSource)
-            return currentSourceID
-        }
-
-        func exitCapsMode(restoreSourceID: String?) {
-            guard
-                let restoreSourceID,
-                let previousSource = inputSource(withID: restoreSourceID)
-            else {
-                return
-            }
-
-            _ = TISSelectInputSource(previousSource)
-        }
-
-        private func bestASCIISource() -> TISInputSource? {
-            if
-                let source = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue(),
-                isASCIICapable(source),
-                isSelectCapable(source),
-                isKeyboardLayout(source)
-            {
-                return source
-            }
-
-            for sourceID in preferredASCIIInputSourceIDs {
-                if
-                    let source = inputSource(withID: sourceID),
-                    isASCIICapable(source),
-                    isSelectCapable(source),
-                    isKeyboardLayout(source)
-                {
-                    return source
-                }
-            }
-
-            let filter: [CFString: Any] = [
-                kTISPropertyInputSourceType: kTISTypeKeyboardLayout as Any,
-                kTISPropertyInputSourceIsASCIICapable: kCFBooleanTrue as Any,
-                kTISPropertyInputSourceIsSelectCapable: kCFBooleanTrue as Any,
-            ]
-
-            guard
-                let list = TISCreateInputSourceList(filter as CFDictionary, false)?.takeRetainedValue() as? [TISInputSource]
-            else {
-                return nil
-            }
-
-            return list.first
-        }
-
-        private func inputSource(withID id: String) -> TISInputSource? {
-            let filter: [CFString: Any] = [kTISPropertyInputSourceID: id]
-            guard
-                let list = TISCreateInputSourceList(filter as CFDictionary, false)?.takeRetainedValue() as? [TISInputSource]
-            else {
-                return nil
-            }
-            return list.first
-        }
-
-        private func inputSourceID(for source: TISInputSource) -> String? {
-            stringProperty(source, key: kTISPropertyInputSourceID)
-        }
-
-        private func shouldSwitchToASCII(_ source: TISInputSource) -> Bool {
-            if isChinesePinyinSource(source) {
-                return true
-            }
-
-            let alreadyASCIILayout = isASCIICapable(source) && isKeyboardLayout(source)
-            return !alreadyASCIILayout
-        }
-
-        private func isChinesePinyinSource(_ source: TISInputSource) -> Bool {
-            guard let bundleID = stringProperty(source, key: kTISPropertyBundleID) else {
-                return false
-            }
-            return chinesePinyinBundleIDs.contains(bundleID)
-        }
-
-        private func isASCIICapable(_ source: TISInputSource) -> Bool {
-            booleanProperty(source, key: kTISPropertyInputSourceIsASCIICapable)
-        }
-
-        private func isSelectCapable(_ source: TISInputSource) -> Bool {
-            booleanProperty(source, key: kTISPropertyInputSourceIsSelectCapable)
-        }
-
-        private func isKeyboardLayout(_ source: TISInputSource) -> Bool {
-            guard let rawValue = TISGetInputSourceProperty(source, kTISPropertyInputSourceType) else {
-                return false
-            }
-            let inputSourceType = Unmanaged<CFString>.fromOpaque(rawValue).takeUnretainedValue() as String
-            return inputSourceType == keyboardLayoutSourceType
-        }
-
-        private func booleanProperty(_ source: TISInputSource, key: CFString) -> Bool {
-            guard let rawValue = TISGetInputSourceProperty(source, key) else {
-                return false
-            }
-            let cfBoolean = Unmanaged<CFBoolean>.fromOpaque(rawValue).takeUnretainedValue()
-            return CFBooleanGetValue(cfBoolean)
-        }
-
-        private func stringProperty(_ source: TISInputSource, key: CFString) -> String? {
-            guard let rawValue = TISGetInputSourceProperty(source, key) else {
-                return nil
-            }
-            return Unmanaged<CFString>.fromOpaque(rawValue).takeUnretainedValue() as String
-        }
-    }
-
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var remapperRunning = false
     private var featureEnabled = false
-    private var savedInputSourceID: String?
+    private var lastCapsLockPressTime: CFAbsoluteTime = 0
+    private var rawCapsWatcherRunning = false
     private enum RuntimeWarning: String {
         case unableToReadKeycapLight = "Could not read Caps Lock keycap light; using internal instant mode state."
         case unableToSyncKeycapLight = "Could not synchronize Caps Lock keycap light; instant mode still works."
+        case unableToOpenRawCapsWatcher = "Raw Caps Lock monitor unavailable; using event-tap fallback."
     }
     private var runtimeWarning: RuntimeWarning? {
         didSet {
@@ -334,7 +270,6 @@ final class CapsLockRemapper {
 
     private let capsLockPressWatcher = CapsLockPressWatcher()
     private let capsLockLightController = CapsLockLightController()
-    private let inputSourceController = InputSourceController()
 
     private(set) var capsModeEnabled = false {
         didSet {
@@ -373,11 +308,12 @@ final class CapsLockRemapper {
         capsLockPressWatcher.onCapsLockPressed = { [weak self] in
             self?.handleCapsLockPressed()
         }
-        do {
-            try capsLockPressWatcher.start()
-        } catch {
+        if (try? capsLockPressWatcher.start()) == nil {
             capsLockPressWatcher.onCapsLockPressed = nil
-            throw Error.unableToOpenHIDManager
+            rawCapsWatcherRunning = false
+            runtimeWarning = .unableToOpenRawCapsWatcher
+        } else {
+            rawCapsWatcherRunning = true
         }
 
         eventTap = tap
@@ -393,6 +329,7 @@ final class CapsLockRemapper {
         setFeatureEnabled(false)
         capsLockPressWatcher.stop()
         capsLockPressWatcher.onCapsLockPressed = nil
+        rawCapsWatcherRunning = false
 
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
@@ -429,6 +366,9 @@ final class CapsLockRemapper {
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
 
         if featureEnabled, keyCode == Self.capsLockKeyCode {
+            if !rawCapsWatcherRunning {
+                handleCapsLockPressed()
+            }
             return nil
         }
 
@@ -505,14 +445,10 @@ final class CapsLockRemapper {
         }
 
         featureEnabled = enabled
+        lastCapsLockPressTime = 0
         if featureEnabled {
             runtimeWarning = nil
-            let currentLightState = capsLockLightController.currentState()
-            let initialCapsMode = currentLightState ?? false
-            if currentLightState == nil {
-                runtimeWarning = .unableToReadKeycapLight
-            }
-            setCapsMode(initialCapsMode, syncHardwareLight: false)
+            setCapsMode(false, syncHardwareLight: true)
         } else {
             setCapsMode(false, syncHardwareLight: true)
             runtimeWarning = nil
@@ -521,30 +457,36 @@ final class CapsLockRemapper {
 
     private func handleCapsLockPressed() {
         guard featureEnabled else { return }
+
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - lastCapsLockPressTime > 0.08 else { return }
+        lastCapsLockPressTime = now
+
         setCapsMode(!capsModeEnabled, syncHardwareLight: true)
     }
 
     private func setCapsMode(_ enabled: Bool, syncHardwareLight: Bool) {
-        guard capsModeEnabled != enabled else {
-            return
+        let modeChanged = capsModeEnabled != enabled
+        if modeChanged, !enabled, syncHardwareLight {
+            syncKeycapLight(to: false)
         }
 
-        capsModeEnabled = enabled
-        if enabled {
-            savedInputSourceID = inputSourceController.enterCapsMode()
-        } else {
-            inputSourceController.exitCapsMode(restoreSourceID: savedInputSourceID)
-            savedInputSourceID = nil
+        if modeChanged {
+            capsModeEnabled = enabled
         }
 
-        if syncHardwareLight {
-            if capsLockLightController.setState(enabled) {
-                if runtimeWarning == .unableToSyncKeycapLight {
-                    runtimeWarning = nil
-                }
-            } else {
-                runtimeWarning = .unableToSyncKeycapLight
+        if syncHardwareLight, enabled || !modeChanged {
+            syncKeycapLight(to: enabled)
+        }
+    }
+
+    private func syncKeycapLight(to enabled: Bool) {
+        if capsLockLightController.setState(enabled) {
+            if runtimeWarning == .unableToSyncKeycapLight {
+                runtimeWarning = nil
             }
+        } else {
+            runtimeWarning = .unableToSyncKeycapLight
         }
     }
 
@@ -567,16 +509,60 @@ enum PermissionHelper {
     }
 
     static func hasInputMonitoringPermission() -> Bool {
-        IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
+        CGPreflightListenEventAccess() || inputMonitoringAccess() == kIOHIDAccessTypeGranted
+    }
+
+    static func diagnosticSummary() -> String {
+        let accessibility = hasAccessibilityPermission() ? "on" : "off"
+        let hidAccess = inputMonitoringAccess()
+        let inputMonitoring = hidAccess == kIOHIDAccessTypeGranted ? "on" : "off"
+        let cgListen = CGPreflightListenEventAccess() ? "on" : "off"
+        return "Accessibility: \(accessibility). Input Monitoring: \(inputMonitoring) (IOHID=\(inputMonitoringStatusName(hidAccess)), CGListen=\(cgListen))."
+    }
+
+    static func missingPermissionMessage() -> String? {
+        let accessibilityGranted = hasAccessibilityPermission()
+        let inputMonitoringGranted = hasInputMonitoringPermission()
+
+        switch (accessibilityGranted, inputMonitoringGranted) {
+        case (false, false):
+            return "Accessibility and Input Monitoring are off for this app. Open both privacy pages and turn on CapsLockFix."
+        case (false, true):
+            return "Accessibility is off for this app. Open Accessibility and turn on CapsLockFix."
+        case (true, false):
+            return "Input Monitoring is off for this app. Open Input Monitoring and turn on CapsLockFix."
+        case (true, true):
+            return nil
+        }
+    }
+
+    private static func inputMonitoringAccess() -> IOHIDAccessType {
+        IOHIDCheckAccess(kIOHIDRequestTypeListenEvent)
+    }
+
+    private static func inputMonitoringStatusName(_ access: IOHIDAccessType) -> String {
+        switch access {
+        case kIOHIDAccessTypeGranted:
+            return "granted"
+        case kIOHIDAccessTypeDenied:
+            return "denied"
+        case kIOHIDAccessTypeUnknown:
+            return "not requested"
+        default:
+            return "unknown"
+        }
     }
 
     static func promptForAccessibilityPermission() {
+        guard !hasAccessibilityPermission() else { return }
         let key = "AXTrustedCheckOptionPrompt" as CFString
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
     static func promptForInputMonitoringPermission() {
+        guard !hasInputMonitoringPermission() else { return }
         _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
+        _ = CGRequestListenEventAccess()
     }
 }
 
@@ -708,6 +694,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastHookError: String?
     private var remapperWarning: String?
     private var controlsWindowController: ControlsWindowController!
+    private let startsHidden = ProcessInfo.processInfo.arguments.contains("--background")
 
     override init() {
         let defaults = UserDefaults.standard
@@ -716,7 +703,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
+        NSApp.setActivationPolicy(startsHidden ? .accessory : .regular)
         installStatusItem()
         installContextMenu()
         installControlsWindow()
@@ -734,7 +721,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         applyInstantCapsSetting(promptForPermission: false)
-        showControls()
+        if startsHidden {
+            hideDockIcon()
+        } else {
+            showControls()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -798,10 +789,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 remapperRunning = false
                 remapperWarning = nil
-                if PermissionHelper.hasAccessibilityPermission() && PermissionHelper.hasInputMonitoringPermission() {
-                    lastHookError = "Keyboard hook failed: \(error.localizedDescription)"
+                if let missingPermissionMessage = PermissionHelper.missingPermissionMessage() {
+                    lastHookError = "\(missingPermissionMessage) \(PermissionHelper.diagnosticSummary()) Hook error: \(error.localizedDescription)"
                 } else {
-                    lastHookError = "Permission required: enable Accessibility and Input Monitoring."
+                    lastHookError = "Keyboard hook failed: \(error.localizedDescription)"
                 }
             }
         } else {

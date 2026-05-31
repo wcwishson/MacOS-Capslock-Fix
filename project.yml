@@ -35,6 +35,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.weimingchen.capslockfix
         PRODUCT_NAME: CapsLockFix
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 7YGZZNN9DL
+        CODE_SIGN_IDENTITY: Apple Development
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_DEBUG_DYLIB: NO
         GENERATE_INFOPLIST_FILE: NO
