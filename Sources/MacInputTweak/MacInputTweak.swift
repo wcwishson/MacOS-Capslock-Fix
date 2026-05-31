@@ -30,17 +30,6 @@ private final class CapsLockLightController {
         }
     }
 
-    func currentState() -> Bool? {
-        guard hasEventHandle else { return nil }
-
-        var state = false
-        let result = IOHIDGetModifierLockState(eventHandle, Int32(kIOHIDCapsLockState), &state)
-        guard result == KERN_SUCCESS else {
-            return nil
-        }
-        return state
-    }
-
     @discardableResult
     func setState(_ enabled: Bool) -> Bool {
         if setLEDState(enabled) {
@@ -213,7 +202,6 @@ final class CapsLockRemapper {
     enum Error: Swift.Error, LocalizedError {
         case unableToCreateEventTap
         case unableToCreateRunLoopSource
-        case unableToOpenHIDManager
 
         var errorDescription: String? {
             switch self {
@@ -221,8 +209,6 @@ final class CapsLockRemapper {
                 return "Could not create keyboard event tap. Check Accessibility and Input Monitoring permissions."
             case .unableToCreateRunLoopSource:
                 return "Could not create run loop source for keyboard event tap."
-            case .unableToOpenHIDManager:
-                return "Could not open HID manager for Caps Lock press monitoring."
             }
         }
     }
@@ -257,7 +243,6 @@ final class CapsLockRemapper {
     private var lastCapsLockPressTime: CFAbsoluteTime = 0
     private var rawCapsWatcherRunning = false
     private enum RuntimeWarning: String {
-        case unableToReadKeycapLight = "Could not read Caps Lock keycap light; using internal instant mode state."
         case unableToSyncKeycapLight = "Could not synchronize Caps Lock keycap light; instant mode still works."
         case unableToOpenRawCapsWatcher = "Raw Caps Lock monitor unavailable; using event-tap fallback."
     }
@@ -526,11 +511,11 @@ enum PermissionHelper {
 
         switch (accessibilityGranted, inputMonitoringGranted) {
         case (false, false):
-            return "Accessibility and Input Monitoring are off for this app. Open both privacy pages and turn on CapsLockFix."
+            return "Accessibility and Input Monitoring are off for this app. Open both privacy pages and turn on Mac Input Tweak."
         case (false, true):
-            return "Accessibility is off for this app. Open Accessibility and turn on CapsLockFix."
+            return "Accessibility is off for this app. Open Accessibility and turn on Mac Input Tweak."
         case (true, false):
-            return "Input Monitoring is off for this app. Open Input Monitoring and turn on CapsLockFix."
+            return "Input Monitoring is off for this app. Open Input Monitoring and turn on Mac Input Tweak."
         case (true, true):
             return nil
         }
@@ -568,13 +553,19 @@ enum PermissionHelper {
 
 @MainActor
 final class ControlsWindowController: NSWindowController, NSWindowDelegate {
-    var onToggleEnabled: ((Bool) -> Void)?
+    var onToggleInstantCaps: ((Bool) -> Void)?
+    var onToggleWindowInputMemory: ((Bool) -> Void)?
     var onOpenAccessibility: (() -> Void)?
     var onOpenInputMonitoring: (() -> Void)?
     var onWindowClosed: (() -> Void)?
 
-    private let enableCheckbox = NSButton(
+    private let instantCapsCheckbox = NSButton(
         checkboxWithTitle: "Enable instant Caps Lock",
+        target: nil,
+        action: nil
+    )
+    private let windowInputMemoryCheckbox = NSButton(
+        checkboxWithTitle: "Enable window-specific input memory",
         target: nil,
         action: nil
     )
@@ -582,12 +573,12 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 250),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 300),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "CapsLock Fix"
+        window.title = "Mac Input Tweak"
         window.isReleasedWhenClosed = false
         window.center()
 
@@ -601,8 +592,9 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func setInstantCapsEnabled(_ enabled: Bool) {
-        enableCheckbox.state = enabled ? .on : .off
+    func setFeatureStates(instantCapsEnabled: Bool, windowInputMemoryEnabled: Bool) {
+        instantCapsCheckbox.state = instantCapsEnabled ? .on : .off
+        windowInputMemoryCheckbox.state = windowInputMemoryEnabled ? .on : .off
     }
 
     func setStatus(text: String, isError: Bool) {
@@ -613,20 +605,24 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
     private func buildUI() {
         guard let contentView = window?.contentView else { return }
 
-        let titleLabel = NSTextField(labelWithString: "CapsLock Fix")
+        let titleLabel = NSTextField(labelWithString: "Mac Input Tweak")
         titleLabel.font = NSFont.systemFont(ofSize: 24, weight: .semibold)
 
         let subtitleLabel = NSTextField(
-            wrappingLabelWithString: "When enabled, Caps Lock toggles instantly for English and Chinese Pinyin input. When disabled, macOS default behavior is unchanged."
+            wrappingLabelWithString: "Small input fixes for macOS: instant Caps Lock typing and optional per-window input source memory."
         )
         subtitleLabel.textColor = .secondaryLabelColor
 
-        enableCheckbox.target = self
-        enableCheckbox.action = #selector(toggleCheckboxChanged)
-        enableCheckbox.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        instantCapsCheckbox.target = self
+        instantCapsCheckbox.action = #selector(instantCapsCheckboxChanged)
+        instantCapsCheckbox.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+
+        windowInputMemoryCheckbox.target = self
+        windowInputMemoryCheckbox.action = #selector(windowInputMemoryCheckboxChanged)
+        windowInputMemoryCheckbox.font = NSFont.systemFont(ofSize: 14, weight: .medium)
 
         statusLabel.lineBreakMode = .byWordWrapping
-        statusLabel.maximumNumberOfLines = 3
+        statusLabel.maximumNumberOfLines = 7
         statusLabel.font = NSFont.systemFont(ofSize: 13)
         statusLabel.textColor = .secondaryLabelColor
 
@@ -647,7 +643,7 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
         buttonStack.alignment = .leading
         buttonStack.spacing = 10
 
-        let stack = NSStackView(views: [titleLabel, subtitleLabel, enableCheckbox, statusLabel, buttonStack])
+        let stack = NSStackView(views: [titleLabel, subtitleLabel, instantCapsCheckbox, windowInputMemoryCheckbox, statusLabel, buttonStack])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -662,8 +658,12 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
         ])
     }
 
-    @objc private func toggleCheckboxChanged() {
-        onToggleEnabled?(enableCheckbox.state == .on)
+    @objc private func instantCapsCheckboxChanged() {
+        onToggleInstantCaps?(instantCapsCheckbox.state == .on)
+    }
+
+    @objc private func windowInputMemoryCheckboxChanged() {
+        onToggleWindowInputMemory?(windowInputMemoryCheckbox.state == .on)
     }
 
     @objc private func openAccessibilityClicked() {
@@ -681,24 +681,31 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let enabledPreferenceKey = "InstantCapsEnabled"
+    private static let instantCapsPreferenceKey = "InstantCapsEnabled"
+    private static let windowInputMemoryPreferenceKey = "WindowInputMemoryEnabled"
 
     private let remapper = CapsLockRemapper()
+    private let windowSpecificInputMemory = WindowSpecificInputMemory()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let statusContextMenu = NSMenu()
-    private let toggleMenuItem = NSMenuItem(title: "Turn On CapsLock Fix", action: #selector(toggleFromMenu), keyEquivalent: "")
+    private let toggleInstantCapsMenuItem = NSMenuItem(title: "Turn On Instant Caps Lock", action: #selector(toggleInstantCapsFromMenu), keyEquivalent: "")
+    private let toggleWindowInputMemoryMenuItem = NSMenuItem(title: "Turn On Window Input Memory", action: #selector(toggleWindowInputMemoryFromMenu), keyEquivalent: "")
     private let quitMenuItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
 
     private var isInstantCapsEnabled: Bool
+    private var isWindowInputMemoryEnabled: Bool
     private var remapperRunning = false
     private var lastHookError: String?
     private var remapperWarning: String?
+    private var windowSpecificInputStatus: String?
     private var controlsWindowController: ControlsWindowController!
+    private var permissionRetryTimer: Timer?
     private let startsHidden = ProcessInfo.processInfo.arguments.contains("--background")
 
     override init() {
         let defaults = UserDefaults.standard
-        isInstantCapsEnabled = defaults.object(forKey: Self.enabledPreferenceKey) as? Bool ?? false
+        isInstantCapsEnabled = defaults.object(forKey: Self.instantCapsPreferenceKey) as? Bool ?? false
+        isWindowInputMemoryEnabled = defaults.object(forKey: Self.windowInputMemoryPreferenceKey) as? Bool ?? false
         super.init()
     }
 
@@ -710,6 +717,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         remapper.onCapsModeChanged = { [weak self] enabled in
             DispatchQueue.main.async {
+                if self?.isWindowInputMemoryEnabled == true {
+                    self?.windowSpecificInputMemory.setPaused(enabled)
+                }
                 self?.refreshUI(capsModeEnabled: enabled)
             }
         }
@@ -719,8 +729,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.refreshUI(capsModeEnabled: self?.remapper.capsModeEnabled ?? false)
             }
         }
+        windowSpecificInputMemory.onStatusChanged = { [weak self] status in
+            self?.windowSpecificInputStatus = status
+            self?.refreshUI(capsModeEnabled: self?.remapper.capsModeEnabled ?? false)
+        }
 
-        applyInstantCapsSetting(promptForPermission: false)
+        applyFeatureSettings(promptForPermission: false)
         if startsHidden {
             hideDockIcon()
         } else {
@@ -729,7 +743,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        permissionRetryTimer?.invalidate()
+        windowSpecificInputMemory.stop()
         remapper.stop()
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        retryFailedInstantCapsIfNeeded()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -741,21 +761,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.target = self
         button.action = #selector(handleStatusItemClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = "CapsLock Fix"
+        button.toolTip = "Mac Input Tweak"
     }
 
     private func installContextMenu() {
-        toggleMenuItem.target = self
+        toggleInstantCapsMenuItem.target = self
+        toggleWindowInputMemoryMenuItem.target = self
         quitMenuItem.target = self
-        statusContextMenu.addItem(toggleMenuItem)
+        statusContextMenu.addItem(toggleInstantCapsMenuItem)
+        statusContextMenu.addItem(toggleWindowInputMemoryMenuItem)
         statusContextMenu.addItem(.separator())
         statusContextMenu.addItem(quitMenuItem)
     }
 
     private func installControlsWindow() {
         controlsWindowController = ControlsWindowController()
-        controlsWindowController.onToggleEnabled = { [weak self] enabled in
+        controlsWindowController.onToggleInstantCaps = { [weak self] enabled in
             self?.setInstantCapsEnabled(enabled, promptForPermission: enabled)
+        }
+        controlsWindowController.onToggleWindowInputMemory = { [weak self] enabled in
+            self?.setWindowInputMemoryEnabled(enabled, promptForPermission: enabled)
         }
         controlsWindowController.onOpenAccessibility = { [weak self] in
             self?.openAccessibilitySettings()
@@ -770,8 +795,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setInstantCapsEnabled(_ enabled: Bool, promptForPermission: Bool) {
         isInstantCapsEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: Self.enabledPreferenceKey)
+        UserDefaults.standard.set(enabled, forKey: Self.instantCapsPreferenceKey)
         applyInstantCapsSetting(promptForPermission: promptForPermission)
+        if isWindowInputMemoryEnabled {
+            windowSpecificInputMemory.setPaused(remapper.capsModeEnabled)
+        }
+        refreshUI(capsModeEnabled: remapper.capsModeEnabled)
+    }
+
+    private func setWindowInputMemoryEnabled(_ enabled: Bool, promptForPermission: Bool) {
+        isWindowInputMemoryEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.windowInputMemoryPreferenceKey)
+        applyWindowInputMemorySetting(promptForPermission: promptForPermission)
+        refreshUI(capsModeEnabled: remapper.capsModeEnabled)
+    }
+
+    private func applyFeatureSettings(promptForPermission: Bool) {
+        applyInstantCapsSetting(promptForPermission: promptForPermission)
+        applyWindowInputMemorySetting(promptForPermission: promptForPermission)
+        refreshUI(capsModeEnabled: remapper.capsModeEnabled)
     }
 
     private func applyInstantCapsSetting(promptForPermission: Bool) {
@@ -801,40 +843,110 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lastHookError = nil
             remapperWarning = nil
         }
+    }
 
+    private func retryFailedInstantCapsIfNeeded() {
+        guard isInstantCapsEnabled, !remapperRunning else {
+            updatePermissionRetryTimer()
+            return
+        }
+
+        applyInstantCapsSetting(promptForPermission: false)
+        if isWindowInputMemoryEnabled {
+            windowSpecificInputMemory.setPaused(remapper.capsModeEnabled)
+        }
         refreshUI(capsModeEnabled: remapper.capsModeEnabled)
     }
 
-    private func refreshUI(capsModeEnabled: Bool) {
-        controlsWindowController?.setInstantCapsEnabled(isInstantCapsEnabled)
-        toggleMenuItem.title = isInstantCapsEnabled ? "Turn Off CapsLock Fix" : "Turn On CapsLock Fix"
+    private func updatePermissionRetryTimer() {
+        let shouldRetry = isInstantCapsEnabled && !remapperRunning
+        if shouldRetry, permissionRetryTimer == nil {
+            let timer = Timer(
+                timeInterval: 1.0,
+                target: self,
+                selector: #selector(handlePermissionRetryTimer(_:)),
+                userInfo: nil,
+                repeats: true
+            )
+            permissionRetryTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        } else if !shouldRetry {
+            permissionRetryTimer?.invalidate()
+            permissionRetryTimer = nil
+        }
+    }
 
-        if !isInstantCapsEnabled {
-            let text = "System default Caps Lock behavior (instant mode is off)."
-            controlsWindowController?.setStatus(text: text, isError: false)
+    @objc private func handlePermissionRetryTimer(_ timer: Timer) {
+        _ = timer
+        retryFailedInstantCapsIfNeeded()
+    }
+
+    private func applyWindowInputMemorySetting(promptForPermission: Bool) {
+        if isWindowInputMemoryEnabled {
+            if promptForPermission {
+                PermissionHelper.promptForAccessibilityPermission()
+            }
+
+            windowSpecificInputMemory.start()
+            windowSpecificInputMemory.setPaused(remapper.capsModeEnabled)
+        } else {
+            windowSpecificInputMemory.stop()
+            windowSpecificInputStatus = nil
+        }
+    }
+
+    private func refreshUI(capsModeEnabled: Bool) {
+        defer {
+            updatePermissionRetryTimer()
+        }
+
+        controlsWindowController?.setFeatureStates(
+            instantCapsEnabled: isInstantCapsEnabled,
+            windowInputMemoryEnabled: isWindowInputMemoryEnabled
+        )
+        toggleInstantCapsMenuItem.title = isInstantCapsEnabled ? "Turn Off Instant Caps Lock" : "Turn On Instant Caps Lock"
+        toggleWindowInputMemoryMenuItem.title = isWindowInputMemoryEnabled ? "Turn Off Window Input Memory" : "Turn On Window Input Memory"
+
+        if !isInstantCapsEnabled && !isWindowInputMemoryEnabled {
+            controlsWindowController?.setStatus(text: "Both tweaks are off. macOS input behavior is unchanged.", isError: false)
             setStatusBarIcon(mode: .disabled)
             return
         }
 
-        if remapperRunning {
+        if isInstantCapsEnabled && !remapperRunning {
+            let errorText = lastHookError ?? "Instant Caps Lock keyboard hook unavailable."
+            controlsWindowController?.setStatus(text: errorText, isError: true)
+            setStatusBarIcon(mode: .error)
+            return
+        }
+
+        var statusLines: [String] = []
+        if isInstantCapsEnabled {
             let capsText = capsModeEnabled ? "Caps mode ON" : "Caps mode OFF"
-            var statusText = "Instant mode is active. Press Caps Lock to toggle immediately (\(capsText))."
+            statusLines.append("Instant Caps Lock is active. Press Caps Lock to toggle immediately (\(capsText)).")
             if let remapperWarning {
-                statusText += "\n\(remapperWarning)"
+                statusLines.append(remapperWarning)
             }
-            controlsWindowController?.setStatus(
-                text: statusText,
-                isError: false
-            )
+        } else {
+            statusLines.append("Instant Caps Lock is off.")
+        }
+
+        if isWindowInputMemoryEnabled {
+            statusLines.append(windowSpecificInputStatus ?? "Window-specific input memory is starting.")
+        } else {
+            statusLines.append("Window-specific input memory is off.")
+        }
+
+        controlsWindowController?.setStatus(text: statusLines.joined(separator: "\n"), isError: false)
+
+        if isInstantCapsEnabled {
             if remapperWarning != nil {
                 setStatusBarIcon(mode: .warning)
             } else {
                 setStatusBarIcon(mode: capsModeEnabled ? .enabledCapsOn : .enabledCapsOff)
             }
         } else {
-            let errorText = lastHookError ?? "Keyboard hook unavailable."
-            controlsWindowController?.setStatus(text: errorText, isError: true)
-            setStatusBarIcon(mode: .error)
+            setStatusBarIcon(mode: .windowMemoryOnly)
         }
     }
 
@@ -842,6 +954,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case disabled
         case enabledCapsOff
         case enabledCapsOn
+        case windowMemoryOnly
         case warning
         case error
     }
@@ -855,6 +968,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             symbolName = "capslock"
         case .enabledCapsOn:
             symbolName = "capslock.fill"
+        case .windowMemoryOnly:
+            symbolName = "keyboard"
         case .warning:
             symbolName = "exclamationmark.triangle"
         case .error:
@@ -863,7 +978,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let symbolConfig = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         if
-            let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: "CapsLock Fix"),
+            let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Mac Input Tweak"),
             let configuredImage = baseImage.withSymbolConfiguration(symbolConfig)
         {
             configuredImage.isTemplate = true
@@ -905,8 +1020,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func toggleFromMenu() {
+    @objc private func toggleInstantCapsFromMenu() {
         setInstantCapsEnabled(!isInstantCapsEnabled, promptForPermission: !isInstantCapsEnabled)
+    }
+
+    @objc private func toggleWindowInputMemoryFromMenu() {
+        setWindowInputMemoryEnabled(!isWindowInputMemoryEnabled, promptForPermission: !isWindowInputMemoryEnabled)
     }
 
     @objc private func openAccessibilitySettings() {

@@ -12,6 +12,10 @@ XcodeDerived/
 dist/
 CapsLockFix.app/
 CapsLockFix-*.zip
+Mac Input Tweak.app/
+MacInputTweak-*.zip
+MacInputTweak.app/
+Mac-Input-Tweak-*.zip
 
 # Xcode user-specific files
 xcuserdata/

@@ -21,7 +21,7 @@ sips -z 256 256 "${BASE_PNG}" --out "${APPICONSET_DIR}/icon_128x128@2x.png" >/de
 sips -z 256 256 "${BASE_PNG}" --out "${APPICONSET_DIR}/icon_256x256.png" >/dev/null
 sips -z 512 512 "${BASE_PNG}" --out "${APPICONSET_DIR}/icon_256x256@2x.png" >/dev/null
 sips -z 512 512 "${BASE_PNG}" --out "${APPICONSET_DIR}/icon_512x512.png" >/dev/null
-cp "${BASE_PNG}" "${APPICONSET_DIR}/icon_512x512@2x.png"
+sips -z 1024 1024 "${BASE_PNG}" --out "${APPICONSET_DIR}/icon_512x512@2x.png" >/dev/null
 
 echo "Updated Xcode app icon set:"
 echo "${APPICONSET_DIR}"

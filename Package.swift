@@ -4,13 +4,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "CapsLockFix",
+    name: "MacInputTweak",
     platforms: [
         .macOS(.v13),
     ],
+    products: [
+        .executable(name: "MacInputTweak", targets: ["MacInputTweak"]),
+    ],
     targets: [
         .executableTarget(
-            name: "CapsLockFix"
+            name: "MacInputTweak",
+            path: "Sources/MacInputTweak"
         ),
     ]
 )

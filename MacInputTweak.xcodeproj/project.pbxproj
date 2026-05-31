@@ -7,91 +7,94 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0E446B6EFFB0E00F60BCAC9D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2CCF8B44521ED2C2A80D822 /* Assets.xcassets */; };
-		1C0C2CC4F85416E949B2C561 /* CapsLockFix.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3042CC6E677DBA5519A1F3C /* CapsLockFix.swift */; };
-		E913BC86527B3E41F46DC161 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6A755F64FBFF988922C94EA /* main.swift */; };
+		4B1974825C79BB659A16AE45 /* MacInputTweak.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0D206D5262464AAD360A45 /* MacInputTweak.swift */; };
+		90E3D7E8BC6134B9BB53CA7F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E52C2034A50C422BD30459EB /* Assets.xcassets */; };
+		B45A374B66A9FC3A10346B6F /* WindowSpecificInputIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288B3CC30BA292D67E2E06AD /* WindowSpecificInputIntegration.swift */; };
+		F8C2CD75B949ADFFB60912DD /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF321572F8E8121680FA547 /* main.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A2CCF8B44521ED2C2A80D822 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A6A755F64FBFF988922C94EA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		A9F16FFB951E28749D733155 /* CapsLockFix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CapsLockFix.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3042CC6E677DBA5519A1F3C /* CapsLockFix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsLockFix.swift; sourceTree = "<group>"; };
+		1391C78912578BA7A50192A4 /* MacInputTweak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacInputTweak.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		288B3CC30BA292D67E2E06AD /* WindowSpecificInputIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSpecificInputIntegration.swift; sourceTree = "<group>"; };
+		2CF321572F8E8121680FA547 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		BF0D206D5262464AAD360A45 /* MacInputTweak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacInputTweak.swift; sourceTree = "<group>"; };
+		E52C2034A50C422BD30459EB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
-		8B59E636A13BA718DA5A7864 /* Resources */ = {
+		640DCE04EB8EFB9BE3DE226E = {
 			isa = PBXGroup;
 			children = (
-				A2CCF8B44521ED2C2A80D822 /* Assets.xcassets */,
+				7B1A47832803EC297B6A7345 /* MacInputTweak */,
+				807839FBE409966710475631 /* Resources */,
+				A23D3283C067F83FEDF0F769 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7B1A47832803EC297B6A7345 /* MacInputTweak */ = {
+			isa = PBXGroup;
+			children = (
+				BF0D206D5262464AAD360A45 /* MacInputTweak.swift */,
+				2CF321572F8E8121680FA547 /* main.swift */,
+				288B3CC30BA292D67E2E06AD /* WindowSpecificInputIntegration.swift */,
+			);
+			name = MacInputTweak;
+			path = Sources/MacInputTweak;
+			sourceTree = "<group>";
+		};
+		807839FBE409966710475631 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E52C2034A50C422BD30459EB /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		C3D10806FE1D2E8E6CAB7F3F = {
+		A23D3283C067F83FEDF0F769 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D21413E3886FA68AB3ADD1F8 /* CapsLockFix */,
-				8B59E636A13BA718DA5A7864 /* Resources */,
-				CB941C982937FC16ADC76ACE /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		CB941C982937FC16ADC76ACE /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				A9F16FFB951E28749D733155 /* CapsLockFix.app */,
+				1391C78912578BA7A50192A4 /* MacInputTweak.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		D21413E3886FA68AB3ADD1F8 /* CapsLockFix */ = {
-			isa = PBXGroup;
-			children = (
-				C3042CC6E677DBA5519A1F3C /* CapsLockFix.swift */,
-				A6A755F64FBFF988922C94EA /* main.swift */,
-			);
-			name = CapsLockFix;
-			path = Sources/CapsLockFix;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		EFE32BF0FE869B2305D21981 /* CapsLockFix */ = {
+		C9BFB99124CCFFFDDAFC5310 /* MacInputTweak */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 513D1105AD36B1F6744EC162 /* Build configuration list for PBXNativeTarget "CapsLockFix" */;
+			buildConfigurationList = 8EAE2FC326AF8571C85D05E1 /* Build configuration list for PBXNativeTarget "MacInputTweak" */;
 			buildPhases = (
-				2B68686C68BA225B2D47B3D7 /* Sources */,
-				8871DBA937E5241DBC14E164 /* Resources */,
+				1C1E1B3ABCCF678E0E55D679 /* Sources */,
+				6BA08FBF4452A3FB6ED86B30 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = CapsLockFix;
+			name = MacInputTweak;
 			packageProductDependencies = (
 			);
-			productName = CapsLockFix;
-			productReference = A9F16FFB951E28749D733155 /* CapsLockFix.app */;
+			productName = MacInputTweak;
+			productReference = 1391C78912578BA7A50192A4 /* MacInputTweak.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		D9F1ED2C44BA3EF379BEAFD8 /* Project object */ = {
+		CEC5DEAD1D3B2FBBF513B4A8 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					EFE32BF0FE869B2305D21981 = {
+					C9BFB99124CCFFFDDAFC5310 = {
 						DevelopmentTeam = 7YGZZNN9DL;
 						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 4D23892DFF401F3555128FF5 /* Build configuration list for PBXProject "CapsLockFix" */;
+			buildConfigurationList = EFD3B4B567884FA7F9972223 /* Build configuration list for PBXProject "MacInputTweak" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -99,68 +102,43 @@
 				Base,
 				en,
 			);
-			mainGroup = C3D10806FE1D2E8E6CAB7F3F;
+			mainGroup = 640DCE04EB8EFB9BE3DE226E;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				EFE32BF0FE869B2305D21981 /* CapsLockFix */,
+				C9BFB99124CCFFFDDAFC5310 /* MacInputTweak */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		8871DBA937E5241DBC14E164 /* Resources */ = {
+		6BA08FBF4452A3FB6ED86B30 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0E446B6EFFB0E00F60BCAC9D /* Assets.xcassets in Resources */,
+				90E3D7E8BC6134B9BB53CA7F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2B68686C68BA225B2D47B3D7 /* Sources */ = {
+		1C1E1B3ABCCF678E0E55D679 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1C0C2CC4F85416E949B2C561 /* CapsLockFix.swift in Sources */,
-				E913BC86527B3E41F46DC161 /* main.swift in Sources */,
+				4B1974825C79BB659A16AE45 /* MacInputTweak.swift in Sources */,
+				B45A374B66A9FC3A10346B6F /* WindowSpecificInputIntegration.swift in Sources */,
+				F8C2CD75B949ADFFB60912DD /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		377466BE004385BE352FE459 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 7YGZZNN9DL;
-				ENABLE_DEBUG_DYLIB = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleIconName = AppIcon;
-				INFOPLIST_KEY_LSMinimumSystemVersion = 13.0;
-				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSHighResolutionCapable = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.weimingchen.capslockfix;
-				PRODUCT_NAME = CapsLockFix;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		6A07CD5CF1EF74CA16992D91 /* Debug */ = {
+		0BB2DF3323EDF672CB285977 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -222,7 +200,59 @@
 			};
 			name = Debug;
 		};
-		8D67D1E7C2DF3B1792206284 /* Release */ = {
+		6023A4E1BA593B7496F6E5F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 7YGZZNN9DL;
+				ENABLE_DEBUG_DYLIB = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
+				INFOPLIST_KEY_LSMinimumSystemVersion = 13.0;
+				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_NSHighResolutionCapable = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wcwishson.macinputtweak;
+				PRODUCT_NAME = "Mac Input Tweak";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A012693787416DBE08D2CAF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 7YGZZNN9DL;
+				ENABLE_DEBUG_DYLIB = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
+				INFOPLIST_KEY_LSMinimumSystemVersion = 13.0;
+				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_NSHighResolutionCapable = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wcwishson.macinputtweak;
+				PRODUCT_NAME = "Mac Input Tweak";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C566F160DDF204E536E89A9A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -277,54 +307,28 @@
 			};
 			name = Release;
 		};
-		A16A71413275EFB24F924210 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = 7YGZZNN9DL;
-				ENABLE_DEBUG_DYLIB = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Resources/Info.plist;
-				INFOPLIST_KEY_CFBundleIconName = AppIcon;
-				INFOPLIST_KEY_LSMinimumSystemVersion = 13.0;
-				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSHighResolutionCapable = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.weimingchen.capslockfix;
-				PRODUCT_NAME = CapsLockFix;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4D23892DFF401F3555128FF5 /* Build configuration list for PBXProject "CapsLockFix" */ = {
+		8EAE2FC326AF8571C85D05E1 /* Build configuration list for PBXNativeTarget "MacInputTweak" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A07CD5CF1EF74CA16992D91 /* Debug */,
-				8D67D1E7C2DF3B1792206284 /* Release */,
+				A012693787416DBE08D2CAF9 /* Debug */,
+				6023A4E1BA593B7496F6E5F2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		513D1105AD36B1F6744EC162 /* Build configuration list for PBXNativeTarget "CapsLockFix" */ = {
+		EFD3B4B567884FA7F9972223 /* Build configuration list for PBXProject "MacInputTweak" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A16A71413275EFB24F924210 /* Debug */,
-				377466BE004385BE352FE459 /* Release */,
+				0BB2DF3323EDF672CB285977 /* Debug */,
+				C566F160DDF204E536E89A9A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = D9F1ED2C44BA3EF379BEAFD8 /* Project object */;
+	rootObject = CEC5DEAD1D3B2FBBF513B4A8 /* Project object */;
 }

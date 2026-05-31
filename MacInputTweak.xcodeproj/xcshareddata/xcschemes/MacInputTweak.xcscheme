@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EFE32BF0FE869B2305D21981"
-               BuildableName = "CapsLockFix.app"
-               BlueprintName = "CapsLockFix"
-               ReferencedContainer = "container:CapsLockFix.xcodeproj">
+               BlueprintIdentifier = "C9BFB99124CCFFFDDAFC5310"
+               BuildableName = "MacInputTweak.app"
+               BlueprintName = "MacInputTweak"
+               ReferencedContainer = "container:MacInputTweak.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EFE32BF0FE869B2305D21981"
-            BuildableName = "CapsLockFix.app"
-            BlueprintName = "CapsLockFix"
-            ReferencedContainer = "container:CapsLockFix.xcodeproj">
+            BlueprintIdentifier = "C9BFB99124CCFFFDDAFC5310"
+            BuildableName = "MacInputTweak.app"
+            BlueprintName = "MacInputTweak"
+            ReferencedContainer = "container:MacInputTweak.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -55,10 +55,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EFE32BF0FE869B2305D21981"
-            BuildableName = "CapsLockFix.app"
-            BlueprintName = "CapsLockFix"
-            ReferencedContainer = "container:CapsLockFix.xcodeproj">
+            BlueprintIdentifier = "C9BFB99124CCFFFDDAFC5310"
+            BuildableName = "MacInputTweak.app"
+            BlueprintName = "MacInputTweak"
+            ReferencedContainer = "container:MacInputTweak.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -74,10 +74,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EFE32BF0FE869B2305D21981"
-            BuildableName = "CapsLockFix.app"
-            BlueprintName = "CapsLockFix"
-            ReferencedContainer = "container:CapsLockFix.xcodeproj">
+            BlueprintIdentifier = "C9BFB99124CCFFFDDAFC5310"
+            BuildableName = "MacInputTweak.app"
+            BlueprintName = "MacInputTweak"
+            ReferencedContainer = "container:MacInputTweak.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
